@@ -14587,7 +14587,7 @@ Jevakhov 15
 Jevanov 15
 Jeverjeev 15
 Jevlakov 15
-Jevolojnov, 15
+Jevolojnov 15
 Jgutov 15
 Jiboedov 15
 Jidelev 15
@@ -15428,7 +15428,7 @@ Lyndyaev 15
 Lyrschikov 15
 Lysak 15
 Lysakov 15
-Lysansky, 15
+Lysansky 15
 Lysenko 15
 Lysenkov 15
 Lysenny 15
@@ -15447,7 +15447,7 @@ Lysyansky 15
 Lysyh 15
 Lysykh 15
 Lysyuk 15
-Lytkin, 15
+Lytkin 15
 Lyvin 15
 Lyzhenkov 15
 Lyzhin 15
