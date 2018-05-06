@@ -47,7 +47,7 @@ def sample_balanced_input(y,lowest,K):
         indices=np.append(indices,np.random.choice(k_idx,lowest,replace=False))
     np.random.shuffle(indices)
 
-    return indices
+    return indices.astype(int)
 
 
 def precompute_MX(X, F, n_len):
@@ -328,7 +328,8 @@ def word_to_onehot(word,characters,n_len):
     return oh_word.flatten('F')
 
 
-def mini_batch_gd(X,Y,y,X_valid,Y_valid,y_valid,MXs,n_batch,eta,updates,W,Fs,n_lens,rho,momentum=True,balance=True):
+def mini_batch_gd(X,Y,y,X_valid,Y_valid,y_valid,MXs,n_batch,eta,updates,W,Fs,n_lens,rho,early,momentum=True,balance=True,
+                  early_stopping=True):
     '''compute the mini batch gd
         return the final weights W and b
     '''
@@ -338,6 +339,9 @@ def mini_batch_gd(X,Y,y,X_valid,Y_valid,y_valid,MXs,n_batch,eta,updates,W,Fs,n_l
         for F in Fs:
             momFs.append(np.zeros(F.shape))
 
+    stop=False
+    count=0
+    best_accuracy=0
     n_updates=0
     accuracy=[]
     cost=[]
@@ -345,6 +349,9 @@ def mini_batch_gd(X,Y,y,X_valid,Y_valid,y_valid,MXs,n_batch,eta,updates,W,Fs,n_l
     valid_cost=[]
     t0 = time.time()
     while n_updates<updates:
+        if early_stopping:
+            if stop:
+                break
         if balance:
             indices=sample_balanced_input(y,lowest,18)
             X_train=X[:,indices]
@@ -380,12 +387,13 @@ def mini_batch_gd(X,Y,y,X_valid,Y_valid,y_valid,MXs,n_batch,eta,updates,W,Fs,n_l
 
             n_updates+=1
 
-            if n_updates%100==0:
+
+            '''if n_updates%100==0:
                 t1 = time.time()
                 print(t1 - t0)
-                t0 = t1
+                t0 = t1'''
 
-            if n_updates%500==0:
+            if n_updates%50==0:
                 accuracy.append(compute_accuracy(X, y, Fs, n_lens, W))  # accuracy for training set
                 cost.append(compute_loss(X, Y, Fs, n_lens, W))  # cost for training set
 
@@ -393,13 +401,25 @@ def mini_batch_gd(X,Y,y,X_valid,Y_valid,y_valid,MXs,n_batch,eta,updates,W,Fs,n_l
                 valid_accuracy.append(a)
                 valid_cost.append(compute_loss(X_valid, Y_valid, Fs, n_lens, W))
                 print('update ',n_updates)
+
+                if early_stopping:
+                    '''Early stopping'''
+                    if a > best_accuracy:
+                        best_index = n_updates/50
+                        count = 0
+                        best_accuracy = a
+                        best_W = W
+                        best_Fs=Fs
+
+                    else:
+                        count += 50
+                    if count == early:
+                        stop=True
+
             if n_updates%500==0:
                 print(compute_loss(X_valid,Y_valid,Fs,n_lens,W))
                 print(compute_accuracy(X_valid, y_valid, Fs,n_lens,W))
-                M=confusion_matrix(X_valid,y_valid,Fs,n_lens,W)
 
-
-            #cost for validation set
 
 
     ##various plotting and printing##
@@ -415,12 +435,21 @@ def mini_batch_gd(X,Y,y,X_valid,Y_valid,y_valid,MXs,n_batch,eta,updates,W,Fs,n_l
     plt.ylabel('loss')
     plt.legend()
     plt.show()
-    ###print last obtained accuracy fortraining and validation###
-    print(accuracy[-1])
-    print(valid_accuracy[-1])
-    ###print last obtained loss fortraining and validation###
-    print(cost[-1])
-    print(valid_cost[-1])
+    if early_stopping:
+        print(accuracy[best_index])
+        print(valid_accuracy[best_index])
+        ###print last obtained loss fortraining and validation###
+        print(cost[best_index])
+        print(valid_cost[best_index])
+
+    else:
+        ###print last obtained accuracy fortraining and validation###
+        print(accuracy[-1])
+        print(valid_accuracy[-1])
+        ###print last obtained loss fortraining and validation###
+        print(cost[-1])
+        print(valid_cost[-1])
+
     M = confusion_matrix(X_valid, y_valid, Fs, n_lens, W)
     if balance:
         np.save('conf_mat_b',M)
@@ -478,7 +507,8 @@ eta=0.001 # learning rate
 rho=0.9 # momentum rate
 h=1e-5
 batch_size=100
-n_updates=1000
+n_updates=1000000
+early=5000
 
 n_len_1=n_len-k_1+1 # size of each output from layer 1
 n_len_2=n_len_1-k_2+1 # size of each output from layer 2
